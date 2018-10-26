@@ -1,11 +1,11 @@
 package jamsesso.meshmap;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Messages have the following byte format.
@@ -14,9 +14,8 @@ import java.nio.ByteBuffer;
  * | 32 byte type ID | 4 byte size (=X) | X byte payload |
  * +-----------------+------------------+----------------+
  */
-@Data
-@EqualsAndHashCode
-@ToString(exclude = "payload")
+
+
 public class Message {
   public static final String TYPE_HI = "HI";
   public static final String TYPE_BYE = "BYE";
@@ -120,5 +119,42 @@ public class Message {
     if (type.getBytes().length > MESSAGE_TYPE) {
       throw new IllegalArgumentException("Type cannot exceed 32 bytes");
     }
+  }
+
+  public String getType() {
+    return type;
+  }
+
+  public int getLength() {
+    return length;
+  }
+
+  public byte[] getPayload() {
+    return payload;
+  }
+
+  @Override
+  public String toString() {
+    return "Message{" +
+            "type='" + type + '\'' +
+            ", length=" + length +
+            '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Message message = (Message) o;
+    return length == message.length &&
+            Objects.equals(type, message.type) &&
+            Arrays.equals(payload, message.payload);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = Objects.hash(type, length);
+    result = 31 * result + Arrays.hashCode(payload);
+    return result;
   }
 }

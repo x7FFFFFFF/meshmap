@@ -1,16 +1,16 @@
 package jamsesso.meshmap;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+
 
 import java.io.Serializable;
 import java.net.InetSocketAddress;
+import java.util.Objects;
 import java.util.UUID;
 
-@EqualsAndHashCode
+
 public class Node implements Serializable {
-  private UUID id = UUID.randomUUID();
-  private @Getter InetSocketAddress address;
+  private final UUID id;
+  private  final InetSocketAddress address;
 
   public Node(InetSocketAddress address) {
     this(UUID.randomUUID(), address);
@@ -60,5 +60,23 @@ public class Node implements Serializable {
     }
 
     return new Node(id, new InetSocketAddress(host, port));
+  }
+
+  public InetSocketAddress getAddress() {
+    return address;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Node node = (Node) o;
+    return Objects.equals(id, node.id) &&
+            Objects.equals(address, node.address);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, address);
   }
 }

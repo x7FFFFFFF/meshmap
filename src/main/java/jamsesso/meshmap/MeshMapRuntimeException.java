@@ -1,9 +1,12 @@
 package jamsesso.meshmap;
 
-import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
+
+
 public class MeshMapRuntimeException extends RuntimeException {
+  public MeshMapRuntimeException() {
+  }
+
   public MeshMapRuntimeException(String msg) {
     super(msg);
   }

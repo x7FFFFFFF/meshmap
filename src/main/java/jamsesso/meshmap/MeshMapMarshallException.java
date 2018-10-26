@@ -1,18 +1,19 @@
 package jamsesso.meshmap;
 
-import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
 public class MeshMapMarshallException extends MeshMapRuntimeException {
-  public MeshMapMarshallException(String msg) {
-    super(msg);
-  }
+    public MeshMapMarshallException() {
+    }
 
-  public MeshMapMarshallException(String msg, Throwable cause) {
-    super(msg, cause);
-  }
+    public MeshMapMarshallException(String msg) {
+        super(msg);
+    }
 
-  public MeshMapMarshallException(Throwable cause) {
-    super(cause);
-  }
+    public MeshMapMarshallException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
+
+    public MeshMapMarshallException(Throwable cause) {
+        super(cause);
+    }
 }

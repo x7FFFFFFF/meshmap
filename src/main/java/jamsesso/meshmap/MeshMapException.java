@@ -1,9 +1,12 @@
 package jamsesso.meshmap;
 
-import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
+
 public class MeshMapException extends Exception {
+
+  public MeshMapException() {
+  }
+
   public MeshMapException(String msg) {
     super(msg);
   }
