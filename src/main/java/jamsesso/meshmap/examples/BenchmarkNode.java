@@ -15,7 +15,7 @@ public class BenchmarkNode {
 
   public static void main(String[] args) throws Exception {
     // Get input from arguments.
-    int port = Integer.parseInt(args[0]);
+    /*int port = Integer.parseInt(args[0]);
     String directory = args[1];
 
     // Generate data
@@ -41,6 +41,6 @@ public class BenchmarkNode {
       });
 
       map.clear();
-    }
+    }*/
   }
 }

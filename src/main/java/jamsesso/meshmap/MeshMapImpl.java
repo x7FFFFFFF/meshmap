@@ -1,104 +1,42 @@
 package jamsesso.meshmap;
 
 
+import jamsesso.meshmap.client.MeshMapClient;
+import jamsesso.meshmap.server.MeshMapServer;
+
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
-    private static final String TYPE_PUT = "PUT";
-    private static final String TYPE_GET = "GET";
-    private static final String TYPE_REMOVE = "REMOVE";
-    private static final String TYPE_CLEAR = "CLEAR";
-    private static final String TYPE_KEY_SET = "KEY_SET";
-    private static final String TYPE_SIZE = "SIZE";
-    private static final String TYPE_CONTAINS_KEY = "CONTAINS_KEY";
-    private static final String TYPE_CONTAINS_VALUE = "CONTAINS_VALUE";
-    private static final String TYPE_DUMP_ENTRIES = "DUMP_ENTRIES";
+import static jamsesso.meshmap.server.MessageHandlerImpl.*;
+
+public class MeshMapImpl<K, V> implements MeshMap<K, V> {
+
 
     private final CachedMeshMapCluster cluster;
-    private final MeshMapServer server;
+
+    private final MeshMapClient client;
     private final Node self;
     private final Map<Object, Object> delegate;
 
-    public MeshMapImpl(MeshMapCluster cluster, MeshMapServer server, Node self) {
+    public MeshMapImpl(MeshMapCluster cluster, MeshMapClient client, Node self) {
         this.cluster = new CachedMeshMapCluster(cluster);
-        this.server = server;
+        this.client = client;
         this.self = self;
         this.delegate = new ConcurrentHashMap<>();
     }
 
-    @Override
-    public Message handle(Message message) {
-        switch (message.getType()) {
-            case Message.TYPE_HI:
-            case Message.TYPE_BYE: {
-                cluster.clearCache();
-                return Message.ACK;
-            }
 
-            case TYPE_GET: {
-                Object key = message.getPayload(Object.class);
-                return new Message(TYPE_GET, delegate.get(key));
-            }
-
-            case TYPE_PUT: {
-                Entry entry = message.getPayload(Entry.class);
-                delegate.put(entry.getKey(), entry.getValue());
-                return Message.ACK;
-            }
-
-            case TYPE_REMOVE: {
-                Object key = message.getPayload(Object.class);
-                return new Message(TYPE_REMOVE, delegate.remove(key));
-            }
-
-            case TYPE_CLEAR: {
-                delegate.clear();
-                return Message.ACK;
-            }
-
-            case TYPE_KEY_SET: {
-                Object[] keys = delegate.keySet().toArray();
-                return new Message(TYPE_KEY_SET, keys);
-            }
-
-            case TYPE_SIZE: {
-                return new Message(TYPE_SIZE, ByteBuffer.allocate(4).putInt(delegate.size()).array());
-            }
-
-            case TYPE_CONTAINS_KEY: {
-                Object key = message.getPayload(Object.class);
-                return delegate.containsKey(key) ? Message.YES : Message.NO;
-            }
-
-            case TYPE_CONTAINS_VALUE: {
-                Object value = message.getPayload(Object.class);
-                return delegate.containsValue(value) ? Message.YES : Message.NO;
-            }
-
-            case TYPE_DUMP_ENTRIES: {
-                Entry[] entries = delegate.entrySet().stream()
-                        .map(entry -> new Entry(entry.getKey(), entry.getValue())).toArray(Entry[]::new);
-
-                return new Message(TYPE_DUMP_ENTRIES, entries);
-            }
-
-            default: {
-                return Message.ACK;
-            }
-        }
-    }
 
     @Override
     public int size() {
         Message sizeMsg = new Message(TYPE_SIZE);
 
-        return delegate.size() + server.broadcast(sizeMsg).entrySet().stream()
+        return delegate.size() + client.broadcast(sizeMsg).entrySet().stream()
                 .map(Map.Entry::getValue)
                 .filter(response -> TYPE_SIZE.equals(response.getType()))
                 .mapToInt(Message::getPayloadAsInt)
@@ -123,7 +61,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
         Message response;
 
         try {
-            response = server.message(target, containsKeyMsg);
+            response = client.message(target, containsKeyMsg);
         } catch (IOException e) {
             throw new MeshMapRuntimeException(e);
         }
@@ -140,7 +78,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
 
         Message containsValueMsg = new Message(TYPE_CONTAINS_VALUE, value);
 
-        return server.broadcast(containsValueMsg).entrySet().stream()
+        return client.broadcast(containsValueMsg).entrySet().stream()
                 .map(Map.Entry::getValue)
                 .anyMatch(Message.YES::equals);
     }
@@ -169,7 +107,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
     @Override
     public void clear() {
         Message clearMsg = new Message(TYPE_CLEAR);
-        server.broadcast(clearMsg);
+        client.broadcast(clearMsg);
         delegate.clear();
     }
 
@@ -198,7 +136,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
             entries.add(new TypedEntry<>((K) localEntry.getKey(), (V) localEntry.getValue()));
         }
 
-        for (Map.Entry<Node, Message> response : server.broadcast(dumpEntriesMsg).entrySet()) {
+        for (Map.Entry<Node, Message> response : client.broadcast(dumpEntriesMsg).entrySet()) {
             Entry[] remoteEntries = response.getValue().getPayload(Entry[].class);
 
             for (Entry remoteEntry : remoteEntries) {
@@ -301,7 +239,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
         Message response;
 
         try {
-            response = server.message(target, getMsg);
+            response = client.message(target, getMsg);
         } catch (IOException e) {
             throw new MeshMapRuntimeException(e);
         }
@@ -323,7 +261,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
         Message response;
 
         try {
-            response = server.message(target, putMsg);
+            response = client.message(target, putMsg);
         } catch (IOException e) {
             throw new MeshMapRuntimeException(e);
         }
@@ -345,7 +283,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
         Message response;
 
         try {
-            response = server.message(target, removeMsg);
+            response = client.message(target, removeMsg);
         } catch (IOException e) {
             throw new MeshMapRuntimeException(e);
         }
@@ -366,7 +304,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
         Message keySetMsg = new Message(TYPE_KEY_SET);
 
         try {
-            Message response = server.message(target, keySetMsg);
+            Message response = client.message(target, keySetMsg);
             return response.getPayload(Object[].class);
         } catch (IOException e) {
             throw new MeshMapRuntimeException(e);
@@ -374,20 +312,20 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V>, MessageHandler {
     }
 
 
-    private static class Entry implements Serializable {
+    public static class Entry implements Serializable {
         final Object key;
         final Object value;
 
-        Entry(Object key, Object value) {
+        public Entry(Object key, Object value) {
             this.key = key;
             this.value = value;
         }
 
-        Object getKey() {
+        public Object getKey() {
             return key;
         }
 
-        Object getValue() {
+        public Object getValue() {
             return value;
         }
     }

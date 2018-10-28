@@ -23,8 +23,8 @@ public class CachedMeshMapCluster implements MeshMapCluster {
   }
 
   @Override
-  public <K, V> MeshMap<K, V> join() throws MeshMapException {
-    return delegate.join();
+  public void join(Node node) throws MeshMapException {
+     delegate.join(node);
   }
 
   public void clearCache() {

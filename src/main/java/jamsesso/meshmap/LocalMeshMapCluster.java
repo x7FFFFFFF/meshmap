@@ -1,5 +1,7 @@
 package jamsesso.meshmap;
 
+import jamsesso.meshmap.server.MeshMapServer;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
@@ -8,12 +10,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
-  private final Node self;
   private final File directory;
-  private MeshMapServer server;
-  private MeshMap map;
 
-  public LocalMeshMapCluster(Node self, File directory) {
+  public LocalMeshMapCluster( File directory) {
     directory.mkdirs();
 
     if (!directory.isDirectory()) {
@@ -24,7 +23,6 @@ public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
       throw new IllegalArgumentException("Directory must be readable and writable");
     }
 
-    this.self = self;
     this.directory = directory;
   }
 
@@ -39,13 +37,8 @@ public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
   }
 
   @Override
-  public <K, V> MeshMap<K, V> join() throws MeshMapException {
-    if (this.map != null) {
-      return (MeshMap<K, V>) this.map;
-    }
-
-    File file = new File(directory.getAbsolutePath() + File.separator + self.toString());
-
+  public void join(Node node) throws MeshMapException {
+    File file = new File(directory.getAbsolutePath() + File.separator + node.toString());
     try {
       boolean didCreateFile = file.createNewFile();
 
@@ -59,7 +52,7 @@ public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
 
     file.deleteOnExit();
 
-    server = new MeshMapServer(this, self);
+    /*server = new MeshMapServer(this, self);
     MeshMapImpl<K, V> map = new MeshMapImpl<>(this, server, self);
 
     try {
@@ -73,21 +66,21 @@ public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
     server.broadcast(Message.HI);
     this.map = map;
 
-    return map;
+    return map;*/
   }
 
   @Override
   public void close() throws Exception {
-    File file = new File(directory.getAbsolutePath() + File.separator + self.toString());
+   /* File file = new File(directory.getAbsolutePath() + File.separator + self.toString());
     boolean didDeleteFile = file.delete();
 
     if (!didDeleteFile) {
       throw new MeshMapException("File could not be deleted: " + file.getName());
-    }
+    }*/
 
-    if (server != null) {
+ /*   if (server != null) {
       server.broadcast(Message.BYE);
       server.close();
-    }
+    }*/
   }
 }

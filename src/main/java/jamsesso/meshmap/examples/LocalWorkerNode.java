@@ -19,10 +19,10 @@ public class LocalWorkerNode {
     // Set up cluster and wait. Enter key kills the server.
     Node self = new Node(new InetSocketAddress("127.0.0.1", port));
 
-    try (LocalMeshMapCluster cluster = new LocalMeshMapCluster(self, new File("cluster/" + directory));
+   /* try (LocalMeshMapCluster cluster = new LocalMeshMapCluster(self, new File("cluster/" + directory));
          MeshMap<String, String> map = cluster.join()) {
       in.read();
       out.println("Node is going down...");
-    }
+    }*/
   }
 }
