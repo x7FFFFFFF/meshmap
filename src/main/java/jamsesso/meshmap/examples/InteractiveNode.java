@@ -4,6 +4,7 @@ import jamsesso.meshmap.LocalMeshMapCluster;
 import jamsesso.meshmap.MeshMap;
 import jamsesso.meshmap.MeshMapException;
 import jamsesso.meshmap.Node;
+import jamsesso.meshmap.server.MeshMapServer;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -22,7 +23,7 @@ public class InteractiveNode implements AutoCloseable {
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Node self;
     private final LocalMeshMapCluster cluster;
-    private final MeshMap<String, String> map;
+    private  MeshMap<String, String> map;
     private final int selfPort;
     private volatile boolean stopped = false;
     private final String directory;
@@ -123,11 +124,13 @@ public class InteractiveNode implements AutoCloseable {
         //Node node = new Node(new InetSocketAddress("127.0.0.1", port));
         futureMap.put(node.toString(), executorService.submit(() -> {
             InvocationContext.set(new InvocationContext.Builder().setSyncMode(true).build());
+            cluster.join(node);
+            MeshMapServer server = new
 
             try (LocalMeshMapCluster cluster = new LocalMeshMapCluster( new File("cluster/" + directory));
 
 
-                 MeshMap<String, String> map = cluster.join()) {
+                ) {
                 out.println("node started:" + node);
                 while (!Thread.interrupted()) {
                     Thread.sleep(1000);

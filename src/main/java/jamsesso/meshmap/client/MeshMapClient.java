@@ -9,21 +9,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.lang.System.err;
 
 public class MeshMapClient {
-    private final Node self;
-    private final MeshMapCluster cluster;
 
-    public MeshMapClient(Node self, MeshMapCluster cluster) {
-        this.self = self;
-        this.cluster = cluster;
-    }
 
-    public  Message message(Node node, Message message) throws IOException {
+    public static Message message(Node node, Message message) throws IOException {
         try {
             return Retryable.retry(() -> {
                 try (Socket socket = new Socket()) {
@@ -42,9 +37,8 @@ public class MeshMapClient {
         }
     }
 
-    public Map<Node, Message> broadcast(Message message) {
-        return cluster.getAllNodes().parallelStream()
-                .filter(node -> !node.equals(self))
+    public Map<Node, Message> broadcast(List<Node> nodesExcepCurrent, Message message) {
+        return nodesExcepCurrent.parallelStream()
                 .map(node -> {
                     try {
                         return new BroadcastResponse(node, message(node, message));

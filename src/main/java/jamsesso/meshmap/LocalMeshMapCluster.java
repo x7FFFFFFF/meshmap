@@ -1,56 +1,61 @@
 package jamsesso.meshmap;
 
-import jamsesso.meshmap.server.MeshMapServer;
-
 import java.io.File;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
-  private final File directory;
+    private final File directory;
 
-  public LocalMeshMapCluster( File directory) {
-    directory.mkdirs();
+    public LocalMeshMapCluster(File directory) {
+        directory.mkdirs();
 
-    if (!directory.isDirectory()) {
-      throw new IllegalArgumentException("File passed to LocalMeshMapCluster must be a directory");
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("File passed to LocalMeshMapCluster must be a directory");
+        }
+
+        if (!directory.canRead() || !directory.canWrite()) {
+            throw new IllegalArgumentException("Directory must be readable and writable");
+        }
+
+        this.directory = directory;
     }
 
-    if (!directory.canRead() || !directory.canWrite()) {
-      throw new IllegalArgumentException("Directory must be readable and writable");
+    @Override
+    public NavigableSet<Node> getAllNodes() {
+        final NavigableSet<Node> nodes = new TreeSet<>(Comparator.comparingInt(Node::getId));
+        Stream.of(Objects.requireNonNull(directory.listFiles()))
+                .filter(File::isFile)
+                .map(File::getName)
+                .map(Node::from).forEach(nodes::add);
+        return nodes;
     }
 
-    this.directory = directory;
-  }
-
-  @Override
-  public List<Node> getAllNodes() {
-    return Stream.of(directory.listFiles())
-      .filter(File::isFile)
-      .map(File::getName)
-      .map(Node::from)
-      .sorted(Comparator.comparingInt(Node::getId))
-      .collect(Collectors.toList());
-  }
-
-  @Override
-  public void join(Node node) throws MeshMapException {
-    File file = new File(directory.getAbsolutePath() + File.separator + node.toString());
-    try {
-      boolean didCreateFile = file.createNewFile();
-
-      if(!didCreateFile) {
-        throw new MeshMapException("File could not be created: " + file.getName());
-      }
-    }
-    catch (IOException e) {
-      throw new MeshMapException("Unable to join cluster", e);
+    @Override
+    public NavigableSet<Node> getAllNodesExcept(Node except) {
+        throw new UnsupportedOperationException();
     }
 
-    file.deleteOnExit();
+    @Override
+    public Node getSuccessorNode(Node node) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void join(Node node) {
+        File file = new File(directory.getAbsolutePath() + File.separator + node.toString());
+        try {
+            boolean didCreateFile = file.createNewFile();
+
+            if (!didCreateFile) {
+                throw new RuntimeException("File could not be created: " + file.getName());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to join cluster", e);
+        }
+
+        file.deleteOnExit();
 
     /*server = new MeshMapServer(this, self);
     MeshMapImpl<K, V> map = new MeshMapImpl<>(this, server, self);
@@ -67,10 +72,10 @@ public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
     this.map = map;
 
     return map;*/
-  }
+    }
 
-  @Override
-  public void close() throws Exception {
+    @Override
+    public void close() throws Exception {
    /* File file = new File(directory.getAbsolutePath() + File.separator + self.toString());
     boolean didDeleteFile = file.delete();
 
@@ -82,5 +87,5 @@ public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
       server.broadcast(Message.BYE);
       server.close();
     }*/
-  }
+    }
 }

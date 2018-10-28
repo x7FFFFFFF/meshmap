@@ -1,9 +1,13 @@
 package jamsesso.meshmap;
 
-import java.util.List;
+import java.util.NavigableSet;
 
 public interface MeshMapCluster {
-    List<Node> getAllNodes();
+    NavigableSet<Node> getAllNodes();
 
-    void join(Node node) throws MeshMapException;
+    NavigableSet<Node> getAllNodesExcept(Node except);
+
+    Node getSuccessorNode(Node node);
+
+    void join(Node node);
 }
