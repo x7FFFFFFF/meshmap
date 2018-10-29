@@ -9,5 +9,7 @@ public interface MeshMapCluster {
 
     Node getSuccessorNode(Node node);
 
+    Node getNodeForKey(Object key);
+
     void join(Node node);
 }

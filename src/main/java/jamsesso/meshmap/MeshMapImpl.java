@@ -4,6 +4,7 @@ package jamsesso.meshmap;
 import jamsesso.meshmap.client.MeshMapClient;
 import jamsesso.meshmap.server.MeshMapServer;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static jamsesso.meshmap.client.MeshMapClient.broadcast;
 import static jamsesso.meshmap.server.MessageHandlerImpl.*;
 
 public class MeshMapImpl<K, V> implements MeshMap<K, V> {
@@ -23,8 +25,8 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
     private final Node self;
     private final Map<Object, Object> delegate;
 
-    public MeshMapImpl(MeshMapCluster cluster, MeshMapClient client, Node self) {
-        this.cluster = new CachedMeshMapCluster(cluster);
+    public MeshMapImpl(File dir, MeshMapClient client, Node self) {
+        this.cluster = new CachedMeshMapCluster(dir);
         this.client = client;
         this.self = self;
         this.delegate = new ConcurrentHashMap<>();
@@ -36,12 +38,13 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
     public int size() {
         Message sizeMsg = new Message(TYPE_SIZE);
 
-        return delegate.size() + client.broadcast(sizeMsg).entrySet().stream()
+        return delegate.size() + broadcast(cluster, self, sizeMsg).entrySet().stream()
                 .map(Map.Entry::getValue)
                 .filter(response -> TYPE_SIZE.equals(response.getType()))
                 .mapToInt(Message::getPayloadAsInt)
                 .sum();
     }
+
 
     @Override
     public boolean isEmpty() {
@@ -50,7 +53,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
 
     @Override
     public boolean containsKey(Object key) {
-        Node target = getNodeForKey(key);
+        Node target = cluster.getNodeForKey(key);
 
         if (target.equals(self)) {
             // Key lives on the current node.
@@ -78,25 +81,25 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
 
         Message containsValueMsg = new Message(TYPE_CONTAINS_VALUE, value);
 
-        return client.broadcast(containsValueMsg).entrySet().stream()
+        return broadcast(cluster, self, containsValueMsg).entrySet().stream()
                 .map(Map.Entry::getValue)
                 .anyMatch(Message.YES::equals);
     }
 
     @Override
     public V get(Object key) {
-        return (V) get(key, getNodeForKey(key));
+        return (V) get(key, cluster.getNodeForKey(key));
     }
 
     @Override
     public V put(K key, V value) {
-        put(key, value, getNodeForKey(key));
+        put(key, value, cluster.getNodeForKey(key));
         return value;
     }
 
     @Override
     public V remove(Object key) {
-        return (V) remove(key, getNodeForKey(key));
+        return (V) remove(key, cluster.getNodeForKey(key));
     }
 
     @Override
@@ -107,7 +110,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
     @Override
     public void clear() {
         Message clearMsg = new Message(TYPE_CLEAR);
-        client.broadcast(clearMsg);
+        broadcast(cluster,self, clearMsg);
         delegate.clear();
     }
 
@@ -136,7 +139,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
             entries.add(new TypedEntry<>((K) localEntry.getKey(), (V) localEntry.getValue()));
         }
 
-        for (Map.Entry<Node, Message> response : client.broadcast(dumpEntriesMsg).entrySet()) {
+        for (Map.Entry<Node, Message> response : broadcast(cluster,self, dumpEntriesMsg).entrySet()) {
             Entry[] remoteEntries = response.getValue().getPayload(Entry[].class);
 
             for (Entry remoteEntry : remoteEntries) {
@@ -154,7 +157,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
     }
 
     public void open() {
-        Node successor = getSuccessorNode();
+        Node successor = cluster.getSuccessorNode(self);
 
         // If there is no successor, there is nothing to do.
         if (successor == null) {
@@ -187,7 +190,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
 
     @Override
     public void close() {
-        Node successor = getSuccessorNode();
+        Node successor = cluster.getSuccessorNode(self);
 
         // If there is no successor, there is nothing to do.
         if (successor == null) {
@@ -198,7 +201,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
         delegate.forEach((key, value) -> put(key, value, successor));
     }
 
-    private Node getNodeForKey(Object key) {
+/*    private Node getNodeForKey(Object key) {
         int hash = key.hashCode() & Integer.MAX_VALUE;
         List<Node> nodes = cluster.getAllNodes();
 
@@ -227,7 +230,7 @@ public class MeshMapImpl<K, V> implements MeshMap<K, V> {
         } else {
             return nodes.get(successorIndex);
         }
-    }
+    }*/
 
     private Object get(Object key, Node target) {
         if (target.equals(self)) {

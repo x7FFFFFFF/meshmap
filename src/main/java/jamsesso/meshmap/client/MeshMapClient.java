@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.stream.Collectors;
 
 import static java.lang.System.err;
@@ -37,7 +38,7 @@ public class MeshMapClient {
         }
     }
 
-    public Map<Node, Message> broadcast(List<Node> nodesExcepCurrent, Message message) {
+    public static Map<Node, Message> broadcast(NavigableSet<Node> nodesExcepCurrent, Message message) {
         return nodesExcepCurrent.parallelStream()
                 .map(node -> {
                     try {
@@ -52,4 +53,9 @@ public class MeshMapClient {
                 })
                 .collect(Collectors.toMap(BroadcastResponse::getNode, BroadcastResponse::getResponse));
     }
+
+    public static Map<Node, Message> broadcast(MeshMapCluster cluster, Node self, Message message) {
+        return MeshMapClient.broadcast(cluster.getAllNodesExcept(self),message);
+    }
+
 }

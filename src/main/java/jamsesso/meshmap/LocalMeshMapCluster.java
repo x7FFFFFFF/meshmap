@@ -32,14 +32,28 @@ public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
         return nodes;
     }
 
-    @Override
-    public NavigableSet<Node> getAllNodesExcept(Node except) {
-        throw new UnsupportedOperationException();
-    }
+
 
     @Override
-    public Node getSuccessorNode(Node node) {
-        throw new UnsupportedOperationException();
+    public Node getNodeForKey(Object key) {
+        /*
+        *    private Node getNodeForKey(Object key) {
+        int hash = key.hashCode() & Integer.MAX_VALUE;
+        List<Node> nodes = cluster.getAllNodes();
+
+        for (Node node : nodes) {
+            if (hash <= node.getId()) {
+                return node;
+            }
+        }
+
+        return nodes.get(0);
+    }*/
+        final NavigableSet<Node> allNodes = getAllNodes();
+        int hash = key.hashCode() & Integer.MAX_VALUE;
+        Node node = new Node(hash);
+        final Node higher = allNodes.ceiling(node);
+        return (higher != null) ? higher : allNodes.first();
     }
 
     @Override
@@ -87,5 +101,43 @@ public class LocalMeshMapCluster implements MeshMapCluster, AutoCloseable {
       server.broadcast(Message.BYE);
       server.close();
     }*/
+    }
+
+    @Override
+    public NavigableSet<Node> getAllNodesExcept(Node except) {
+        final NavigableSet<Node> allNodes = getAllNodes();
+        final NavigableSet<Node> nodesHead = allNodes.headSet(except, false);
+        final NavigableSet<Node> nodesTail = allNodes.tailSet(except, false);
+        nodesHead.addAll(nodesTail);
+        return nodesHead;
+    }
+/*
+*
+    private Node getSuccessorNode() {
+        List<Node> nodes = cluster.getAllNodes();
+
+        if (nodes.size() <= 1) {
+            return null;
+        }
+
+        int selfIndex = Collections.binarySearch(nodes, self, Comparator.comparingInt(Node::getId));
+        int successorIndex = selfIndex + 1;
+
+        // Find the successor node.
+        if (successorIndex > nodes.size() - 1) {
+            return nodes.get(0);
+        } else {
+            return nodes.get(successorIndex);
+        }
+    }
+* */
+    @Override
+    public Node getSuccessorNode(Node node) {
+        final NavigableSet<Node> allNodes = getAllNodes();
+        final Node higher = allNodes.higher(node);
+        if (higher == null) {
+            return allNodes.first();
+        }
+        return higher;
     }
 }

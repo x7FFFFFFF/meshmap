@@ -1,7 +1,6 @@
 package jamsesso.meshmap;
 
 
-
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.Objects;
@@ -9,74 +8,81 @@ import java.util.UUID;
 
 
 public class Node implements Serializable {
-  private final UUID id;
-  private  final InetSocketAddress address;
+    private final UUID id;
+    private final InetSocketAddress address;
+    private final int hashCode;
 
-  public Node(InetSocketAddress address) {
-    this(UUID.randomUUID(), address);
-  }
-
-  public Node(UUID id, InetSocketAddress address) {
-    this.id = id;
-    this.address = address;
-  }
-
-  public int getId() {
-    return id.hashCode() & Integer.MAX_VALUE;
-  }
-
-  @Override
-  public String toString() {
-    return address.getHostString() + '#' + address.getPort() + '#' + id;
-  }
-
-  public static Node from(String str) {
-    if (str == null) {
-      throw new IllegalArgumentException("String must not be null");
+    public Node(InetSocketAddress address) {
+        this(UUID.randomUUID(), address);
     }
 
-    String[] parts = str.split("#");
-
-    if (parts.length != 3) {
-      throw new IllegalArgumentException("Node address must contain only a host and port");
+    public Node(UUID id, InetSocketAddress address) {
+        this.id = id;
+        this.address = address;
+        this.hashCode = id.hashCode() & Integer.MAX_VALUE;
     }
 
-    String host = parts[0];
-    int port;
-    UUID id;
-
-    try {
-      port = Integer.parseInt(parts[1]);
-    }
-    catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Node address port must be a valid number", e);
+    public int getId() {
+        return this.hashCode;
     }
 
-    try {
-      id = UUID.fromString(parts[2]);
+    public Node(int hashCode) {
+        this.id = null;
+        this.address = null;
+        this.hashCode = hashCode;
     }
-    catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Node ID must be a valid UUID", e);
+
+    @Override
+    public String toString() {
+        return address.getHostString() + '#' + address.getPort() + '#' + id;
     }
 
-    return new Node(id, new InetSocketAddress(host, port));
-  }
+    public static Node from(String str) {
+        if (str == null) {
+            throw new IllegalArgumentException("String must not be null");
+        }
 
-  public InetSocketAddress getAddress() {
-    return address;
-  }
+        String[] parts = str.split("#");
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Node node = (Node) o;
-    return Objects.equals(id, node.id) &&
-            Objects.equals(address, node.address);
-  }
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Node address must contain only a host and port");
+        }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(id, address);
-  }
+        String host = parts[0];
+        int port;
+        UUID id;
+
+        try {
+            port = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Node address port must be a valid number", e);
+        }
+
+        try {
+            id = UUID.fromString(parts[2]);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Node ID must be a valid UUID", e);
+        }
+
+        return new Node(id, new InetSocketAddress(host, port));
+    }
+
+    public InetSocketAddress getAddress() {
+        return address;
+    }
+
+/*    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || o.hashCode() != this.hashCode || getClass() != o.getClass()) return false;
+        Node node = (Node) o;
+        return Objects.equals(id, node.id) &&
+                Objects.equals(address, node.address);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.hashCode;
+    }*/
 }
